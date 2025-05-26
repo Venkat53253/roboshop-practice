@@ -31,7 +31,7 @@ done
 aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{
   "Changes": [
     {
-      "Action": "UPSERT",
+      "Action": "CREATE" | "UPSERT",
       "ResourceRecordSet": {
         "Name": "'"$RECORD_NAME"'",
         "Type": "A",
@@ -42,8 +42,7 @@ aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch
           }
         ]
       }
-    }
-  ]
+    }  ]
 }'
 
   if [ $? -eq 0 ]; then
