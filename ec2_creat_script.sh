@@ -15,7 +15,7 @@ fi
 
 
 for i in "${INSTANCE[@]}"; do
-  INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t3.micro --security-group-ids sg-066d322d0b8ea9c8f --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$i}]" --query "Instances[0].InstanceId" --output text)
+  INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t2.micro --security-group-ids sg-066d322d0b8ea9c8f --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$i}]" --query "Instances[0].InstanceId" --output text)
 
     if [ "$i" != "frontend" ]; then
         IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$i" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
