@@ -7,15 +7,6 @@ INSTANCE=("mongodb" "redis" "mysql" "rabbitmq" "frontend" "payment" "shipping" "
 ZONE_ID="Z05167558BEIFU213OL8"
 DOMAIN_NAME="venaws.site"
 
-if [ $userid -ne 0 ]; then
-    echo "Please run as root"
-    exit 1
-fi
-# Check if AWS CLI is installed
-
-
-#for instance in ${INSTANCES[@]}
-
 for instance in $@
 do
     INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t3.micro --security-group-ids sg-01bc7ebe005fb1cb2 --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$instance}]" --query "Instances[0].InstanceId" --output text)
