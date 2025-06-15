@@ -14,40 +14,35 @@ fi
 # Check if AWS CLI is installed
 
 
-for i in "${INSTANCE[@]}"; do
-  INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t3.micro --security-group-ids sg-066d322d0b8ea9c8f --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$i}]" --query "Instances[0].InstanceId" --output text)
-
-    if [ "$i" != "frontend" ]; then
-        IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$i" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
-        RECORD_NAME="$i.$DOMAIN_NAME"
+for#for instance in ${INSTANCES[@]}
+for instance in $@
+do
+    INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t3.micro --security-group-ids sg-01bc7ebe005fb1cb2 --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$instance}]" --query "Instances[0].InstanceId" --output text)
+    if [ $instance != "frontend" ]
+    then
+        IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
+        RECORD_NAME="$instance.$DOMAIN_NAME"
     else
-        IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$i" --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
-         RECORD_NAME="$DOMAIN_NAME"
+        IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+        RECORD_NAME="$DOMAIN_NAME"
     fi
-    echo "IP address for $i is $IP"
+    echo "$instance IP address: $IP"
 
-done
-
-aws route53 change-resource-record-sets --hosted-zone-id $ZONE_ID --change-batch '{
-  "Changes": [
+    aws route53 change-resource-record-sets \
+    --hosted-zone-id $ZONE_ID \
+    --change-batch '
     {
-      "Action": "UPSERT",
-      "ResourceRecordSet": {
-        "Name": "'"$RECORD_NAME"'",
-        "Type": "A",
-        "TTL": 1,
-        "ResourceRecords": [
-          {
-            "Value": "'"$IP"'"
-          }
-        ]
-      }
-    }
-  ]
-}'
-
-  if [ $? -eq 0 ]; then
-    echo "DNS record for $RECORD_NAME updated successfully."
-  else
-    echo "Failed to update DNS record for $RECORD_NAME."
-  fi
+        "Comment": "Creating or Updating a record set for cognito endpoint"
+        ,"Changes": [{
+        "Action"              : "UPSERT"
+        ,"ResourceRecordSet"  : {
+            "Name"              : "'$RECORD_NAME'"
+            ,"Type"             : "A"
+            ,"TTL"              : 1
+            ,"ResourceRecords"  : [{
+                "Value"         : "'$IP'"
+            }]
+        }
+        }]
+    }'
+done
