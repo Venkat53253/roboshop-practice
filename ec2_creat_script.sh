@@ -7,32 +7,50 @@ INSTANCE=("mongodb" "redis" "mysql" "rabbitmq" "frontend" "payment" "shipping" "
 ZONE_ID="Z05167558BEIFU213OL8"
 DOMAIN_NAME="venaws.site"
 
-for instance in $@
+# Corrected loop to iterate over the INSTANCE array
+for instance in "${INSTANCE[@]}"
 do
+    echo "Processing instance: $instance" # Added for better debugging output
+
     INSTANCE_ID=$(aws ec2 run-instances --image-id ami-09c813fb71547fc4f --instance-type t3.micro --security-group-ids sg-01bc7ebe005fb1cb2 --tag-specifications "ResourceType=instance,Tags=[{Key=Name, Value=$instance}]" --query "Instances[0].InstanceId" --output text)
-    if [ $instance != "frontend" ]
+
+    # Check if instance ID was retrieved successfully
+    if [ -z "$INSTANCE_ID" ]; then
+        echo "Error: Could not create EC2 instance for $instance. Exiting."
+        exit 1
+    fi
+
+    if [ "$instance" != "frontend" ]
     then
-        IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
+        # It's good practice to wait for the instance to be running to get an IP
+        aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+        IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
         RECORD_NAME="$instance.$DOMAIN_NAME"
     else
-        IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+        aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+        IP=$(aws ec2 describe-instances --instance-ids "$INSTANCE_ID" --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
         RECORD_NAME="$DOMAIN_NAME"
     fi
     echo "$instance IP address: $IP"
 
+    # Check if IP was retrieved successfully
+    if [ -z "$IP" ]; then
+        echo "Error: Could not retrieve IP address for $instance. Skipping Route53 update."
+        continue # Skip to the next instance if IP is not found
+    fi
+
     aws route53 change-resource-record-sets \
-    --hosted-zone-id $ZONE_ID \
-    --change-batch '
-    {
-        "Comment": "Creating or Updating a record set for cognito endpoint"
+    --hosted-zone-id "$ZONE_ID" \
+    --change-batch '{
+        "Comment": "Creating or Updating a record set for '$instance'"
         ,"Changes": [{
-        "Action"              : "UPSERT"
-        ,"ResourceRecordSet"  : {
-            "Name"              : "'$RECORD_NAME'"
+        "Action"           : "UPSERT"
+        ,"ResourceRecordSet" : {
+            "Name"             : "'"$RECORD_NAME"'"
             ,"Type"             : "A"
             ,"TTL"              : 1
             ,"ResourceRecords"  : [{
-                "Value"         : "'$IP'"
+                "Value"         : "'"$IP"'"
             }]
         }
         }]
