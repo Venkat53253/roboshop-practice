@@ -4,7 +4,7 @@ AMI_ID="ami-09c813fb71547fc4f"
 SG_ID="sg-066d322d0b8ea9c8f" # replace with your SG ID
 INSTANCES=("mongodb" "redis" "mysql" "rabbitmq" "catalogue" "user" "cart" "shipping" "payment" "dispatch" "frontend")
 ZONE_ID="Z05167558BEIFU213OL8" # replace with your ZONE ID
-DOMAIN_NAME="venaws.site" # replace with your domain
+DOMAIN_NAME="venaws.in" # replace with your domain
 
 #for instance in ${INSTANCES[@]}
 for instance in "${INSTANCES[@]}"
